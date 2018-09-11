@@ -23,7 +23,7 @@ You can add jar file to your project, for example
 adding a dependency in maven project
 
 or simply run the jar file:
-> java -jar yourGeneratedJarFile
+> java -jar library-1.0.jar
 
 then it will run the demo inside the library
 
