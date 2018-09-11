@@ -30,11 +30,7 @@ public class LibraryManagerTest {
         LibraryManager library = new LibraryManager();
 
         String id = library.addNewBook("Title 1", "Author 1", 2000);
-        BookDetails bookDetails = new BookDetails.BookDetailsBuilder()
-                .setTitle("Title 1")
-                .setAuthor("Author 1")
-                .setYear(2000)
-                .build();
+        BookDetails bookDetails = new BookDetails("Title 1", "Author 1", 2000);
         Assert.assertEquals(bookDetails, library.getBookById(id));
 
         library.removeBook(id);
@@ -54,11 +50,7 @@ public class LibraryManagerTest {
     @Test(expected = BookAlreadyLentException.class)
     public void shouldNotRemoveBookBecauseIsAlreadyLent() throws BookNotExistException, BookAlreadyLentException {
         LibraryManager library = new LibraryManager();
-        BookDetails bookDetails = new BookDetails.BookDetailsBuilder()
-                .setTitle("Title 1")
-                .setAuthor("Author 1")
-                .setYear(2000)
-                .build();
+        BookDetails bookDetails = new BookDetails("Title 1", "Author 1", 2000);
         String id = library.addNewBook("Title 1", "Author 1", 2000);
         BookDetails lentBookDetails = library.lendBook(id, "Jan Kowalski");
         library.lendBook(id, "Anna Kowalska");

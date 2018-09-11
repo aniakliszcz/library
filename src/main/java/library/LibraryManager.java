@@ -1,11 +1,11 @@
 package library;
 
 import library.dao.BookDetailsDAO;
-import library.dao.BookDistributorDAO;
+import library.dao.BookDAO;
 import library.exception.BookAlreadyLentException;
 import library.exception.BookNotExistException;
+import library.model.Book;
 import library.model.BookDetails;
-import library.model.BookDistributor;
 import library.search.SearchCriteria;
 
 import java.util.*;
@@ -20,9 +20,9 @@ public class LibraryManager implements Library {
 
     private final static Logger logger = Logger.getLogger(LibraryManager.class.getName());
 
-    private List<BookDistributor> bookDistributors = new ArrayList<>();
+    private List<Book> books = new ArrayList<>();
     private BookDetailsDAO bookDetailsDAO = new BookDetailsDAO();
-    private BookDistributorDAO bookDistributorDAO = new BookDistributorDAO();
+    private BookDAO bookDAO = new BookDAO();
 
     @Override
     public String addNewBook(String title, String author, Integer year) {
@@ -33,11 +33,7 @@ public class LibraryManager implements Library {
 
         String bookDetailsId = bookDetailsDAO.getBookDetailsIdByParams(criteria);
         if(isNull(bookDetailsId)) {
-            BookDetails bookDetails = new BookDetails.BookDetailsBuilder()
-                    .setAuthor(author)
-                    .setTitle(title)
-                    .setYear(year)
-                    .build();
+            BookDetails bookDetails = new BookDetails(title, author, year);
           bookDetailsId = bookDetailsDAO.addBookDetail(bookDetails);
         }
       return addBook(bookDetailsId);
@@ -45,15 +41,15 @@ public class LibraryManager implements Library {
 
 
     /**
-     * Method that creates an instance of BookDistributor,
+     * Method that creates an instance of Book,
      * which contains all information about each bookDetails in library.
      * This instance is added to all bookDetails distrobutors list
      * @param bookDetailsId
      * @return id
      */
     String addBook(String bookDetailsId) {
-        BookDistributor bookDistributor = new BookDistributor(bookDetailsId);
-        String id = bookDistributorDAO.addBookDistributor(bookDistributor);
+        Book book = new Book(bookDetailsId);
+        String id = bookDAO.addBookDistributor(book);
         return id;
     }
 
@@ -63,7 +59,7 @@ public class LibraryManager implements Library {
         if (!checkIfBookExist(id)) {
             throw new BookNotExistException("This book doesn't exist in library");
         }
-        String bookDetailId = bookDistributorDAO.getBookDistributor(id).getBookDetailsId();
+        String bookDetailId = bookDAO.getBookDistributor(id).getBookDetailsId();
         return bookDetailsDAO.getBookDetailsById(bookDetailId);
     }
 
@@ -81,13 +77,13 @@ public class LibraryManager implements Library {
      */
     @Override
     public void displayAllBooksInformation() {
-        Map<String, Set<BookDistributor>> result = bookDistributorDAO.getAllBookDistributors().stream().collect(Collectors.groupingBy(BookDistributor::getBookDetailsId, toSet()));
+        Map<String, Set<Book>> result = bookDAO.getAllBookDistributors().stream().collect(Collectors.groupingBy(Book::getBookDetailsId, toSet()));
         result.forEach((k, v) -> {
             System.out.println("BookDetails " + bookDetailsDAO.getBookDetailsById(k).getTitle() + " "
                     + bookDetailsDAO.getBookDetailsById(k).getAuthor() + " "
                     + bookDetailsDAO.getBookDetailsById(k).getYear());
             System.out.println("Available amount in library " + v.stream().filter(bd -> !bd.isLent()).count());
-            System.out.println("Lent amount " + v.stream().filter(BookDistributor::isLent).count());
+            System.out.println("Lent amount " + v.stream().filter(Book::isLent).count());
         });
 
          }
@@ -99,7 +95,7 @@ public class LibraryManager implements Library {
             throw new BookNotExistException("This book doesn't exist in library");
         }
 
-        BookDistributor bd = bookDistributorDAO.getBookDistributor(id);
+        Book bd = bookDAO.getBookDistributor(id);
         System.out.println("BookDetails details ");
         System.out.println(bookDetailsDAO.getBookDetailsById(bd.getBookDetailsId()).toString());
         System.out.println("BookDetails is " + (bd.isLent() ? "lent" : "available"));
@@ -112,7 +108,7 @@ public class LibraryManager implements Library {
      * @return if book exist
      */
     private boolean checkIfBookExist(String id) {
-        return bookDistributorDAO.isInLibrary(id);
+        return bookDAO.isInLibrary(id);
         }
 
     /**
@@ -120,13 +116,13 @@ public class LibraryManager implements Library {
      * @return if book is lent
      */
     boolean checkIfBookIsLent(String id) {
-        return bookDistributorDAO.checkIfBookIsLent(id);
+        return bookDAO.checkIfBookIsLent(id);
     }
 
 
     @Override
     public List<BookDetails> getBookListByCriteria(SearchCriteria criteria) {
-        Stream<BookDistributor> stream = bookDistributorDAO.getAllBookDistributors().stream();
+        Stream<Book> stream = bookDAO.getAllBookDistributors().stream();
         if (!isNull(criteria.getAuthor())) {
             stream = stream.filter(b -> bookDetailsDAO.getBookDetailsById(b.getBookDetailsId()).getAuthor().equals(criteria.getAuthor()));
         }
@@ -148,14 +144,14 @@ public class LibraryManager implements Library {
         if (checkIfBookIsLent(id)) {
             throw new BookAlreadyLentException("This book is currently lent");
         }
-        BookDistributor bd = bookDistributorDAO.getBookDistributor(id);
+        Book bd = bookDAO.getBookDistributor(id);
 
-        bookDistributorDAO.removeBook(id);
+        bookDAO.removeBook(id);
         updateBookDetails();
     }
 
     private void updateBookDetails(){
-        List<String> ids = bookDistributorDAO.getAllBookDistributors().stream().map(b -> b.getBookDetailsId()).collect(Collectors.toList());
+        List<String> ids = bookDAO.getAllBookDistributors().stream().map(b -> b.getBookDetailsId()).collect(Collectors.toList());
         List<String> idsToRemove = bookDetailsDAO.getKeys().stream().filter(k -> !ids.contains(k)).collect(Collectors.toList());
         idsToRemove.stream().forEach(i -> bookDetailsDAO.removeBookDetails(i));
     }
@@ -174,7 +170,7 @@ public class LibraryManager implements Library {
             throw new BookAlreadyLentException("This book is currently lent");
         }
 
-        BookDistributor bd = bookDistributorDAO.getBookDistributor(id);
+        Book bd = bookDAO.getBookDistributor(id);
         bd.setLastLenderName(person);
         bd.setLent(true);
 
@@ -188,8 +184,8 @@ public class LibraryManager implements Library {
            throw new BookNotExistException("This book doesn't exist in library");
        }
 
-       List<BookDistributor> listOfBooks = bookDistributorDAO.getBookDistibutorsByBookDetail(detailsId);
-       BookDistributor bd = getFirstAvailableBook(listOfBooks);
+       List<Book> listOfBooks = bookDAO.getBookDistibutorsByBookDetail(detailsId);
+       Book bd = getFirstAvailableBook(listOfBooks);
 
         if (isNull(bd)) {
             throw new BookAlreadyLentException("All books are currently lent");
@@ -201,8 +197,8 @@ public class LibraryManager implements Library {
         return bookDetailsDAO.getBookDetailsById(bd.getBookDetailsId());
     }
 
-    private BookDistributor getFirstAvailableBook(List<BookDistributor> list){
-        Optional<BookDistributor> available = list.stream().filter(b -> !b.isLent()).findFirst();
+    private Book getFirstAvailableBook(List<Book> list){
+        Optional<Book> available = list.stream().filter(b -> !b.isLent()).findFirst();
         if(!isNull(available)){
           return available.get();
         }

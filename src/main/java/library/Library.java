@@ -68,7 +68,7 @@ public interface Library {
     /**
      * Method that allows to lent a book
      * Before checks if book exist and is not currently lent
-     * Method assigned to BookDistributor the person who lent the book
+     * Method assigned to Book the person who lent the book
      * @param id
      * @param person
      * @return BookDetails
@@ -80,7 +80,7 @@ public interface Library {
     /**
      * Method that allows to lent a book
      * Before checks if there are any available books in library
-     * Method assigned to BookDistributor the person who lent the book
+     * Method assigned to Book the person who lent the book
      * @param criteria
      * @param person
      * @return BookDetails
